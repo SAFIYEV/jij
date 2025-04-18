@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TON Yield Explorer</title>
+    <style>
+        /* --- Переменные цветов TON (пример) --- */
+        :root {
+            --ton-blue: #0098EA;
+            --ton-dark-blue: #0077C2;
+            --ton-light-blue: #E1F5FE;
+            --ton-white: #FFFFFF;
+            --ton-black: #212121;
+            --ton-grey: #757575;
+            --ton-light-grey: #F5F5F5;
+            --ton-gradient: linear-gradient(45deg, #0077C2, #0098EA); /* Пример градиента */
+            --ton-gradient-hover: linear-gradient(45deg, #0098EA, #0077C2); /* Измененный градиент при наведении */
+            --status-connected: #4CAF50; /* Зеленый для статуса "Подключен" */
+            --status-disconnected: #F44336; /* Красный для статуса "Отключен" */
+        }
+
+        /* --- Общие стили для фона и текста --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--ton-light-grey); /* Светлый фон */
+            color: var(--ton-black); /* Темный текст */
+            line-height: 1.6;
+            display: flex;
+            justify-content: center; /* Центрируем контент */
+            align-items: flex-start; /* Выравниваем по верху */
+            min-height: 100vh;
+            box-sizing: border-box; /* Учитываем padding в размере */
+        }
+
+        .app-container {
+            background: var(--ton-white); /* Белый контейнер для контента */
+            border-radius: 15px; /* Скругленные углы */
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Легкая тень */
+            max-width: 500px; /* Ограничиваем ширину для удобства на мобильных */
+            width: 100%;
+            text-align: center; /* Центрируем содержимое по умолчанию */
+            box-sizing: border-box;
+        }
+
+        h1, h2 {
+            color: var(--ton-dark-blue); /* Заголовки цветом TON */
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--ton-blue);
+            background: -webkit-linear-gradient(45deg, #0077C2, #0098EA); /* Градиент для заголовка */
+            -webkit-background-clip: text;
+            background-clip: text; /* <-- ДОБАВЬ ЭТУ СТРОКУ */
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+            font-size: 2em; /* Увеличим размер заголовка */
+        }
+
+
+        /* --- Стили секций --- */
+        .section {
+            background: var(--ton-light-blue); /* Фон для секций */
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left; /* Текст внутри секций слева */
+            box-sizing: border-box;
+        }
+
+        .section h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--ton-dark-blue);
+            border-bottom: 1px solid rgba(0, 120, 190, 0.2); /* Разделитель */
+            padding-bottom: 10px;
+            font-size: 1.4em; /* Увеличим размер подзаголовков */
+        }
+
+        /* --- Стили кнопки --- */
+        .btn {
+            display: inline-block;
+            background: var(--ton-gradient); /* Градиентный фон кнопки */
+            color: var(--ton-white);
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px; /* Сильное скругление */
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease; /* Плавный переход */
+            box-shadow: 0 5px 15px rgba(0, 152, 234, 0.3); /* Тень для кнопки */
+            font-weight: bold;
+            text-decoration: none; /* Убираем подчеркивание, если вдруг используется как ссылка */
+            text-align: center; /* Центрируем текст на кнопке */
+        }
+
+        .btn:hover {
+            background: var(--ton-gradient-hover); /* Изменяем градиент при наведении */
+            box-shadow: 0 6px 18px rgba(0, 152, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: scale(0.98); /* Эффект нажатия */
+            box-shadow: 0 2px 10px rgba(0, 152, 234, 0.5);
+        }
+
+        /* --- Стили для статуса подключения и адреса --- */
+        .status {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center; /* Центрируем текст статуса */
+        }
+
+        .status.connected {
+            color: var(--status-connected); /* Зеленый цвет для подключенного статуса */
+        }
+
+        .status.disconnected {
+            color: var(--status-disconnected); /* Красный цвет для отключенного статуса */
+        }
+
+
+        .address {
+            margin-top: 10px;
+            word-break: break-all; /* Перенос длинных адресов */
+            font-family: monospace; /* Моноширинный шрифт для адреса */
+            color: var(--ton-grey);
+            font-size: 0.9rem;
+            text-align: center; /* Центрируем адрес */
+        }
+
+        /* --- Стили для скрытых секций --- */
+        .hidden {
+            display: none;
+        }
+
+        /* --- Стили для заметок --- */
+        .note {
+            font-size: 0.85rem;
+            color: var(--ton-grey);
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* --- Стили для списков (балансы, пулы) --- */
+        #balances ul,
+        #pools-list ul {
+            list-style: none; /* Убираем стандартные маркеры списка */
+            padding: 0;
+            margin: 0;
+        }
+
+        #balances li,
+        #pools-list li {
+            background: var(--ton-white); /* Белый фон для элементов списка */
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--ton-light-grey); /* Легкая граница */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); /* Легкая тень */
+            font-size: 1em;
+        }
+
+        #balances li strong,
+        #pools-list li strong {
+            color: var(--ton-dark-blue); /* Выделяем ключевую информацию */
+        }
+
+        #pools-list li small {
+            color: var(--ton-grey);
+            font-size: 0.85em;
+        }
+
+        /* --- Стили для блока оценки дохода --- */
+        #income-estimate {
+             /* Сюда будем добавлять стили для отображения оценки дохода */
+             font-size: 1.1em;
+             font-weight: bold;
+             color: var(--ton-dark-blue);
+             text-align: center; /* Центрируем оценку */
+        }
+
+        #income-estimate ul {
+             list-style: none;
+             padding: 0;
+             margin-top: 10px;
+        }
+
+        #income-estimate li {
+            background: none; /* Убираем фон элементов списка внутри оценки */
+            border: none; /* Убираем границу */
+            box-shadow: none; /* Убираем тень */
+            padding: 5px 0;
+            margin-bottom: 5px;
+            font-weight: normal;
+            color: var(--ton-black);
+        }
+
+        #income-estimate strong {
+            color: var(--status-connected); /* Зеленый цвет для итоговой оценки */
+            font-size: 1.2em;
+        }
+
+         /* --- Дополнительные стили для ссылок на пулы --- */
+        .pool-link {
+            color: var(--ton-dark-blue); /* Цвет ссылки */
+            text-decoration: none; /* Убираем подчеркивание */
+            font-weight: bold;
+        }
+
+        .pool-link:hover {
+            text-decoration: underline; /* Подчеркивание при наведении */
+        }
+
+
+    </style>
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <h1>🚀 TON Yield Explorer</h1>
+
+        <div id="connection-section" class="section">
+            <h2>Кошелек</h2>
+            <button id="connect-button" class="btn">Подключить кошелек</button>
+            <div id="connection-status" class="status"></div>
+            <div id="wallet-address" class="address"></div>
+        </div>
+
+        <div id="balance-section" class="section hidden">
+            <h2>💰 Мой Баланс</h2>
+            <div id="balances">
+                </div>
+        </div>
+
+        <div id="pools-section" class="section hidden">
+            <h2>💹 Выгодные Пулы (Текущие оценки)</h2>
+            <div id="pools-list">
+                <p>Загрузка данных о пулах...</p>
+            </div>
+        </div>
+
+        <div id="estimate-section" class="section hidden">
+            <h2>📈 Примерный Доход (15 дней)</h2>
+            <div id="income-estimate">
+                 </div>
+             <p class="note">* Расчет приблизительный, основан на текущих данных APY и вашем балансе. Не является финансовой рекомендацией.</p>
+        </div>
+
+    </div>
+
+    <script>
+        // Инициализируем коннектор с тестовым манифестом
+        // !!! ВНИМАНИЕ: Для конкурса тебе понадобится свой manifest.json, размещенный онлайн
+        // и URL к нему нужно будет указать здесь вместо тестового!
+        const connector = new TonConnectSDK.TonConnect({
+            manifestUrl: 'https://raw.githubusercontent.com/ton-community/tonconnect-manifests/main/manifests/tonconnect-manifest.json',
+        });
+
+        const connectButton = document.getElementById('connect-button');
+        const connectionStatus = document.getElementById('connection-status');
+        const walletAddress = document.getElementById('wallet-address');
+        const balanceSection = document.getElementById('balance-section');
+        const poolsSection = document.getElementById('pools-section');
+        const estimateSection = document.getElementById('estimate-section');
+
+        // --- Вспомогательная функция для получения загруженных балансов (НУЖНО ДОРАБОТАТЬ!) ---
+        // Эта функция пока просто заглушка с тестовыми данными.
+        // Реально нужно будет получать балансы из loadBalances и хранить их здесь.
+        let userBalances = {}; // Переменная для хранения загруженных балансов
+
+        function getLoadedBalances() {
+            return userBalances; // Возвращаем текущие загруженные балансы
+        }
+
+
+        // Функция обновления интерфейса в зависимости от статуса подключения
+        function updateUI() {
+            if (connector.connected) {
+                // Кошелек подключен
+                connectionStatus.innerText = 'Статус: Подключен';
+                connectionStatus.classList.remove('disconnected');
+                connectionStatus.classList.add('connected');
+
+                // Адрес кошелька (берем из объекта connector)
+                // TON адреса бывают в разных форматах, берем базовый (raw) для отображения
+                 const rawAddress = connector.wallet.account.address;
+                walletAddress.innerText = `Адрес: ${rawAddress}`;
+
+
+                // Показываем секции баланса, пулов и оценки
+                balanceSection.classList.remove('hidden');
+                poolsSection.classList.remove('hidden');
+                estimateSection.classList.remove('hidden');
+
+                // Вызываем функции для загрузки данных
+                loadBalances(rawAddress); // Загружаем балансы для подключенного адреса
+                loadPoolsData(); // Загружаем данные о пулах (они могут быть статичными или с бэкенда)
+
+
+            } else {
+                // Кошелек отключен
+                connectionStatus.innerText = 'Статус: Отключен';
+                connectionStatus.classList.remove('connected');
+                connectionStatus.classList.add('disconnected');
+
+                walletAddress.innerText = '';
+                connectButton.innerText = 'Подключить кошелек';
+                connectButton.classList.remove('connected');
+
+                // Скрываем секции баланса, пулов и оценки
+                balanceSection.classList.add('hidden');
+                poolsSection.classList.add('hidden');
+                estimateSection.classList.add('hidden');
+
+                 // Очищаем данные и состояние
+                 userBalances = {}; // Сбрасываем балансы
+                document.getElementById('balances').innerHTML = '';
+                document.getElementById('pools-list').innerHTML = '<p>Загрузка данных о пулах...</p>'; // Возвращаем начальный текст
+                document.getElementById('income-estimate').innerHTML = '';
+            }
+        }
+
+        // Обработчик нажатия кнопки
+        connectButton.addEventListener('click', () => {
+            if (connector.connected) {
+                // Если подключен, отключаем
+                connector.disconnect();
+            } else {
+                // Если отключен, подключаем
+                connector.connect(); // Запускаем процесс подключения
+            }
+        });
+
+        // Подписываемся на изменение статуса подключения
+        connector.onStatusChange(
+            wallet => {
+                if (wallet) {
+                    console.log('Кошелек подключен:', wallet);
+                    // console.log('Информация об аккаунте:', wallet.account); // Дополнительная инфа
+                } else {
+                    console.log('Кошелек отключен.');
+                }
+                updateUI(); // Обновляем интерфейс при любом изменении статуса
+            },
+            // Обработка ошибок (опционально, но желательно)
+            e => {
+                console.error('Ошибка подключения:', e);
+                connectionStatus.innerText = `Ошибка: ${e.message}`;
+                connectionStatus.classList.remove('connected');
+                connectionStatus.classList.add('disconnected'); // Показываем ошибку красным
+                // Можешь добавить более детальную обработку ошибок здесь, например, уведомление пользователю
+            }
+        );
+
+        // !!! ВАЖНО: Обработка ситуации, если пользователь УЖЕ подключен при загрузке страницы
+        // TON Connect SDK автоматически восстанавливает подключение, если оно было ранее
+        connector.restoreConnection();
+
+
+        // --- Функции для загрузки данных (НУЖНО ДОРАБОТАТЬ!) ---
+
+        async function loadBalances(address) {
+            console.log(`Загрузка балансов для адреса: ${address}`);
+            const balancesDiv = document.getElementById('balances');
+            balancesDiv.innerHTML = '<p>Загрузка балансов...</p>'; // Placeholder
+
+            try {
+                // --- Пример получения баланса TON через публичный TON API ---
+                // Используем публичный API (например, от TON Center)
+                const tonApiResponse = await fetch(`https://toncenter.com/api/v2/getwalletbalance?address=${address}`);
+                const tonApiData = await tonApiResponse.json();
+
+                if (tonApiData.ok) {
+                    const balanceNano = tonApiData.result.balance; // Баланс в наноТОНах (строка)
+                    // Конвертируем в ТОН (число). Используем parseFloat для простоты MVP
+                    const balanceTon = parseFloat(balanceNano) / 1e9;
+
+                    // Сохраняем баланс TON в нашей переменной
+                    userBalances = {}; // Очищаем предыдущие балансы
+                    userBalances['TON'] = balanceTon;
+
+                    let balancesHtml = `<ul><li><strong>Баланс TON:</strong> ${balanceTon.toFixed(4)}</li>`;
+
+                    // --- TODO: Получение балансов Jettons (других токенов) ---
+                    // Это сложнее, требует отдельного запроса и обработки Jetton Wallet контрактов
+                    // Для MVP можно опустить или сделать заглушку, или использовать публичный API,
+                    // который сразу отдает все балансы (если такой есть и работает просто).
+                    // Например, можно попробовать API от TON API (не путать с TON Center API)
+                    // https://tonapi.io/
+                    // Пример запроса для получения всех балансов Jettons и TON:
+                    // https://tonapi.io/v2/accounts/<адрес_кошелька>/jettons
+                    // https://tonapi.io/v2/accounts/<адрес_кошелька>/balances
+                    // Нужна регистрация и API ключ для стабильной работы.
+
+                     // Пока просто статичные примеры для тестирования оценки
+                     // В реальном коде эти данные нужно получать с блокчейна/API
+                     // userBalances['USDT'] = 500.75; // Тестовый баланс USDT
+                     // userBalances['EXAMPLE'] = 1234; // Тестовый баланс другого токена
+
+                    // --- Пример как можно получать балансы Jettons через TONAPI (нужна доработка и ключ!) ---
+                    /*
+                    const tonapiResponse = await fetch(`https://tonapi.io/v2/accounts/${address}/balances`);
+                    const tonapiData = await tonapiResponse.json();
+                    if (tonapiResponse.ok) {
+                         // Тут парсим ответ и добавляем Jettons в userBalances
+                         // Например, если ответ в формате { balances: [{ token: { symbol: 'USDT' }, balance: '...' }] }
+                         tonapiData.balances.forEach(item => {
+                             // Конвертируем баланс из строки с наноединицами в число
+                             const jettonBalance = parseFloat(item.balance) / (10 ** item.token.decimals);
+                             userBalances[item.token.symbol] = jettonBalance;
+                         });
+                    }
+                    */
+
+
+                     // После получения всех балансов (TON и Jettons), отображаем их
+                     for (const symbol in userBalances) {
+                         if (symbol !== 'TON' && userBalances[symbol] > 0) {
+                             // Округляем для отображения в зависимости от актива
+                             const displayBalance = symbol === 'USDT' ? userBalances[symbol].toFixed(2) : userBalances[symbol].toFixed(userBalances[symbol] > 10 ? 0 : 4); // Пример округления
+                             balancesHtml += `<li><strong>Баланс ${symbol}:</strong> ${displayBalance}</li>`;
+                         }
+                     }
+
+
+                    balancesHtml += '</ul>';
+                    balancesDiv.innerHTML = balancesHtml;
+
+                    // После загрузки балансов вызываем функцию оценки дохода
+                    // Она сама проверит, загружены ли данные пулов
+                    estimateIncome();
+
+
+                } else {
+                    balancesDiv.innerHTML = '<p>Не удалось загрузить баланс TON.</p>';
+                    // Пробуем загрузить только Jettons, если TON баланс не получен (опционально)
+                     // TODO: Вызвать загрузку Jettons здесь, если TON balance fetch failed
+                }
+
+            } catch (error) {
+                console.error('Ошибка при загрузке балансов:', error);
+                balancesDiv.innerHTML = '<p>Ошибка при загрузке балансов.</p>';
+            }
+        }
+
+
+        async function loadPoolsData() {
+            console.log('Загрузка данных о пулах...');
+            const poolsListDiv = document.getElementById('pools-list');
+             poolsListDiv.innerHTML = '<p>Получение данных о пулах...</p>'; // Placeholder
+
+            // --- TODO: Получение актуальных данных о APY с реальных DeFi протоколов ---
+            // Это самая сложная часть MVP.
+            // Варианты:
+            // 1. Использовать публичное API конкретного DEX'а (если есть и простое)
+            // 2. Парсить данные с их сайта (менее надежно и может быть запрещено)
+            // 3. Написать простой бэкенд, который сам собирает эти данные и отдает мини-аппке
+            // 4. Использовать статичные/временно-фиксированные данные для демонстрации
+            // Для MVP конкурса, статичные или получаемые ОЧЕНЬ простым способом данные - наиболее реалистично.
+
+            try {
+                // Имитируем загрузку данных о пулах с небольшой задержкой
+                // В реальной версии здесь будет await fetch(...) к API или бэкенду
+                 await new Promise(resolve => setTimeout(resolve, 1500)); // Задержка для примера
+
+                // --- Статические/фиктивные данные о пулах для демонстрации ---
+                // В РЕАЛЬНОЙ ВЕРСИИ ЭТИ ДАННЫЕ ДОЛЖНЫ БЫТЬ АКТУАЛЬНЫМИ!!!
+                const dummyPools = [
+                    {
+                        id: 'pool1',
+                        name: 'TON / USDT (Пример DEX)',
+                        apy: '35.12', // APY как число (удобнее для расчетов)
+                        relevantAsset: 'USDT', // Актив пользователя, который подходит для этого пула (символ)
+                         link: 'https://example.dex.com/pool/TON/USDT' // Пример ссылки на пул
+                    },
+                     {
+                         id: 'pool2',
+                         name: 'TON / wBTC (Другой DEX)',
+                         apy: '28.55',
+                         relevantAsset: 'wBTC',
+                          link: 'https://another.dex.com/pool/TON/wBTC'
+                     },
+                     {
+                         id: 'pool3',
+                         name: 'TON Staking (Пример)',
+                         apy: '4.5',
+                         relevantAsset: 'TON', // Для стейкинга TON нужен сам TON
+                          link: 'https://example.staking.com'
+                     },
+                      {
+                         id: 'pool4',
+                         name: 'JETTON / TON (Твой Jetton?)', // Пример пула с твоим жетоном
+                         apy: '55.99',
+                         relevantAsset: 'MYTOKEN', // Укажи символ своего жетона
+                          link: 'https://example.dex.com/pool/MYTOKEN/TON'
+                     },
+                ];
+                // --- Конец статических данных ---
+
+
+                let poolsHtml = '<ul>';
+                if (dummyPools.length > 0) {
+                    dummyPools.forEach(pool => {
+                        poolsHtml += `<li>
+                                        <strong>${pool.name}:</strong> ${pool.apy}% APY
+                                        <br><small>Актив для внесения: ${pool.relevantAsset}</small>
+                                        ${pool.link ? `<br><a href="${pool.link}" target="_blank" class="pool-link">Перейти</a>` : ''}
+                                      </li>`;
+                    });
+                    poolsHtml += '</ul>';
+                    poolsListDiv.innerHTML = poolsHtml;
+
+                     // Сохраняем данные пулов для использования в расчете
+                     loadedPoolsData = dummyPools; // Сохраняем в новую переменную
+
+                     // После загрузки данных пулов вызываем функцию оценки дохода
+                    estimateIncome();
+
+
+                } else {
+                    poolsListDiv.innerHTML = '<p>Данные о пулах временно недоступны.</p>';
+                     loadedPoolsData = []; // Очищаем данные пулов
+                }
+
+
+            } catch (error) {
+                console.error('Ошибка при загрузке данных о пулов:', error);
+                 poolsListDiv.innerHTML = '<p>Ошибка при загрузке данных о пулов.</p>';
+                 loadedPoolsData = []; // Очищаем данные пулов при ошибке
+            }
+        }
+
+        // --- Переменная для хранения загруженных данных о пулах ---
+        let loadedPoolsData = [];
+
+
+        // --- Функция оценки примерного дохода (НУЖНО ДОРАБОТАТЬ!) ---
+        // Эта функция теперь использует глобальные переменные userBalances и loadedPoolsData
+        function estimateIncome() {
+             console.log('Оценка примерного дохода...');
+             const incomeEstimateDiv = document.getElementById('income-estimate');
+
+             // Проверяем, есть ли данные для расчета
+             const balances = getLoadedBalances();
+             const pools = loadedPoolsData;
+
+             if (Object.keys(balances).length === 0 || pools.length === 0) {
+                 // Если данных пока нет, ничего не делаем или показываем "Загрузка..."
+                 // incomeEstimateDiv.innerHTML = '<p>Загрузка данных для оценки...</p>';
+                 return; // Выходим, пока нет всех данных
+             }
+
+             let estimateHtml = '<p>Оценка дохода по вашим активам:</p><ul>';
+             let totalEstimateTon = 0; // Для суммарной оценки в TON (очень условно)
+
+             let hasRelevantAssets = false; // Флаг, есть ли у пользователя активы для показанных пулов
+
+             // Проходим по каждому пулу, который мы отобразили
+             pools.forEach(pool => {
+                 const relevantAssetSymbol = pool.relevantAsset; // Символ актива для этого пула (TON, USDT и т.д.)
+                 const userBalance = balances[relevantAssetSymbol] || 0; // Баланс пользователя для этого актива (если есть, иначе 0)
+                 const apyPercentage = parseFloat(pool.apy); // Получаем число APY (уже должно быть число)
+
+                 // Если у пользователя есть положительный баланс подходящего актива и APY корректный и > 0
+                 if (userBalance > 0 && !isNaN(apyPercentage) && apyPercentage > 0) {
+                      hasRelevantAssets = true; // У пользователя есть подходящие активы
+
+                     // Примерный расчет дохода за 15 дней
+                     // Доход = Баланс * (APY в долях / 365 дней * 15 дней)
+                     const estimatedIncomeAmount = userBalance * (apyPercentage / 100) * (15 / 365);
+
+                     // Отображаем оценку для конкретного пула
+                     estimateHtml += `<li>В пуле "${pool.name}": <strong>~${estimatedIncomeAmount.toFixed(4)} ${relevantAssetSymbol}</strong> за 15 дней</li>`;
+
+                     // --- TODO: Конвертация дохода в TON для суммарной оценки ---
+                     // Для суммарной оценки в TON нужно знать текущий курс каждого актива к TON.
+                     // Это добавляет еще одну сложность (нужно получать курсы с DEX или агрегаторов).
+                     // Для простоты MVP, можем либо суммировать только TON, либо использовать фиксированный курс, либо вообще не показывать общую сумму в TON.
+                     // Пока суммируем только если сам актив - TON
+                     if (relevantAssetSymbol === 'TON') {
+                          totalEstimateTon += estimatedIncomeAmount;
+                     } else {
+                          // Если есть возможность получить курс (например, через API),
+                          // можно добавить сюда конвертацию:
+                          // const tonRate = getTonRate(relevantAssetSymbol); // Нужна функция для получения курса
+                          // totalEstimateTon += estimatedIncomeAmount * tonRate;
+                     }
+
+                 }
+             });
+
+             estimateHtml += '</ul>';
+
+             // Если у пользователя нет подходящих активов для показанных пулов
+              if (!hasRelevantAssets) {
+                   estimateHtml = '<p>У вас нет активов, подходящих для показанных пулов.</p>';
+              } else if (totalEstimateTon > 0) {
+                  // Если удалось посчитать общую оценку в TON (хотя бы частично)
+                   estimateHtml += `<p><strong>Общая примерная оценка дохода (очень условно): ~${totalEstimateTon.toFixed(4)} TON за 15 дней.</strong></p>`;
+              } else if (hasRelevantAssets) {
+                   // Если есть активы, но не TON, и нет конвертации
+                   estimateHtml += `<p class="note">Для более точной оценки в TON требуется получение актуальных курсов обмена.</p>`;
+              }
+
+
+             incomeEstimateDiv.innerHTML = estimateHtml;
+        }
+
+
+        // --- Инициализация при загрузке страницы ---
+        // Вызываем обновление интерфейса и загрузку данных при старте
+        // Порядок важен: сначала грузим данные пулов (статичные или с бэкенда),
+        // потом обновляем UI, который вызовет загрузку балансов,
+        // а загрузка балансов в свою очередь вызовет расчет оценки, когда балансы будут получены.
+        loadPoolsData(); // Начинаем загрузку данных о пулах сразу
+        // updateUI() вызовется после restoreConnection или по клику на кнопку
+
+        // NOTE: loadBalances вызывается внутри updateUI при успешном подключении кошелька.
+        // estimateIncome вызывается после успешной загрузки loadBalances (и предполагает, что loadPoolsData уже завершилась или завершится скоро).
+
+
+    </script>
+</body>
+</html>
