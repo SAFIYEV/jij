@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TON Yield Explorer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <h1>TON Yield Explorer</h1>
+
+        <div id="connection-section" class="section">
+            <h2>Кошелек</h2>
+            <button id="connect-button" class="btn">Подключить кошелек</button>
+            <div id="connection-status"></div>
+            <div id="wallet-address"></div>
+        </div>
+
+        <div id="balance-section" class="section hidden">
+            <h2>Мой Баланс</h2>
+            <div id="balances"></div>
+        </div>
+
+        <div id="pools-section" class="section hidden">
+            <h2>Выгодные Пулы (Текущие оценки)</h2>
+            <div id="pools-list">
+                <p>Загрузка данных о пулах...</p>
+            </div>
+        </div>
+
+        <div id="estimate-section" class="section hidden">
+            <h2>Примерный Доход (15 дней)</h2>
+            <div id="income-estimate"></div>
+             <p class="note">* Расчет приблизительный, основан на текущих данных APY и вашем балансе.</p>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
